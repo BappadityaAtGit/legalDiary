@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Legal Case Diary</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink: #1a1a2e;
+    --ink-light: #4a4a6a;
+    --gold: #c9952a;
+    --gold-light: #f0d080;
+    --parchment: #fdf6e3;
+    --parchment-dark: #f0e6c8;
+    --deep: #1B3A6B;
+    --deep-mid: #2a4f8a;
+    --red: #8B1A1A;
+    --green: #1a5c3a;
+    --border: #d4c4a0;
+    --shadow: 0 4px 24px rgba(27,58,107,0.10);
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #f0ebe0;
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  header {
+    background: var(--deep);
+    color: white;
+    padding: 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.25);
+  }
+  .header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 32px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .logo-seal {
+    width: 48px; height: 48px;
+    background: var(--gold);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'EB Garamond', serif;
+    font-size: 22px; font-weight: 600;
+    color: var(--deep);
+    box-shadow: 0 0 0 3px rgba(201,149,42,0.3);
+    flex-shrink: 0;
+  }
+  .logo-text h1 {
+    font-family: 'EB Garamond', serif;
+    font-size: 22px; font-weight: 600;
+    letter-spacing: 0.02em;
+    line-height: 1.2;
+  }
+  .logo-text p {
+    font-size: 11px; font-weight: 300;
+    color: var(--gold-light);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .header-actions {
+    display: flex; gap: 10px; align-items: center;
+  }
+  .btn-header {
+    padding: 8px 18px; border: none; border-radius: 6px;
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Inter', sans-serif;
+  }
+  .btn-import {
+    background: rgba(255,255,255,0.12);
+    color: white; border: 1px solid rgba(255,255,255,0.25);
+  }
+  .btn-import:hover { background: rgba(255,255,255,0.2); }
+  .btn-export {
+    background: var(--gold); color: var(--deep); font-weight: 600;
+  }
+  .btn-export:hover { background: var(--gold-light); }
+
+  /* MAIN LAYOUT */
+  .container {
+    max-width: 1400px; margin: 0 auto;
+    padding: 28px 24px;
+  }
+
+  /* STATS BAR */
+  .stats-bar {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 16px; margin-bottom: 24px;
+  }
+  .stat-card {
+    background: white; border-radius: 10px;
+    padding: 18px 20px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    display: flex; align-items: center; gap: 14px;
+  }
+  .stat-icon {
+    width: 44px; height: 44px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0;
+  }
+  .stat-icon.blue { background: #e8eef8; }
+  .stat-icon.gold { background: #fef6e0; }
+  .stat-icon.red  { background: #fde8e8; }
+  .stat-icon.green{ background: #e6f4ed; }
+  .stat-value {
+    font-size: 26px; font-weight: 600; line-height: 1;
+    font-family: 'EB Garamond', serif;
+  }
+  .stat-label { font-size: 12px; color: var(--ink-light); margin-top: 3px; }
+
+  /* PANELS */
+  .panels {
+    display: grid; grid-template-columns: 380px 1fr;
+    gap: 20px; align-items: start;
+  }
+
+  /* FORM PANEL */
+  .form-panel {
+    background: white; border-radius: 12px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .panel-header {
+    background: var(--parchment);
+    border-bottom: 2px solid var(--gold);
+    padding: 16px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .panel-title {
+    font-family: 'EB Garamond', serif;
+    font-size: 17px; font-weight: 600;
+    color: var(--deep);
+  }
+  .form-body { padding: 20px; }
+  .field { margin-bottom: 14px; }
+  label {
+    display: block; font-size: 12px; font-weight: 500;
+    color: var(--ink-light); margin-bottom: 5px;
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  label span.req { color: var(--red); }
+  input, select, textarea {
+    width: 100%; padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: 7px; font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    background: var(--parchment);
+    color: var(--ink);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--deep-mid);
+    box-shadow: 0 0 0 3px rgba(27,58,107,0.10);
+    background: white;
+  }
+  textarea { resize: vertical; min-height: 72px; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .form-actions { display: flex; gap: 10px; margin-top: 18px; }
+  .btn {
+    flex: 1; padding: 10px 16px; border: none; border-radius: 7px;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    transition: all 0.2s; font-family: 'Inter', sans-serif;
+  }
+  .btn-primary {
+    background: var(--deep); color: white;
+  }
+  .btn-primary:hover { background: var(--deep-mid); }
+  .btn-secondary {
+    background: var(--parchment); color: var(--ink-light);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { background: var(--parchment-dark); }
+  .btn-danger {
+    background: #fde8e8; color: var(--red);
+    border: 1px solid #f5c0c0;
+  }
+  .btn-danger:hover { background: #fbd0d0; }
+
+  /* TABLE PANEL */
+  .table-panel {
+    background: white; border-radius: 12px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .table-toolbar {
+    background: var(--parchment);
+    border-bottom: 2px solid var(--gold);
+    padding: 14px 20px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  }
+  .search-wrap {
+    flex: 1; min-width: 200px;
+    position: relative;
+  }
+  .search-wrap svg {
+    position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+    color: var(--ink-light); pointer-events: none;
+  }
+  #searchInput {
+    padding-left: 36px; background: white;
+  }
+  .filter-select {
+    width: auto; min-width: 140px; background: white;
+  }
+  .record-count {
+    font-size: 12px; color: var(--ink-light);
+    white-space: nowrap;
+  }
+  .table-wrap { overflow-x: auto; }
+  table {
+    width: 100%; border-collapse: collapse;
+    font-size: 13.5px;
+  }
+  thead th {
+    background: var(--deep); color: white;
+    padding: 11px 14px; text-align: left;
+    font-weight: 500; font-size: 12px;
+    letter-spacing: 0.04em; white-space: nowrap;
+    cursor: pointer; user-select: none;
+  }
+  thead th:hover { background: var(--deep-mid); }
+  thead th.sort-asc::after  { content: " ▲"; opacity: 0.7; }
+  thead th.sort-desc::after { content: " ▼"; opacity: 0.7; }
+  tbody tr {
+    border-bottom: 1px solid #f0e8d8;
+    transition: background 0.15s;
+  }
+  tbody tr:hover { background: #fdf8f0; }
+  tbody tr.editing-row { background: #fffbe6; }
+  td { padding: 10px 14px; vertical-align: top; }
+  td.client-name { font-weight: 600; color: var(--deep); }
+  td.hearing-date { font-weight: 500; }
+  .date-badge {
+    display: inline-block; padding: 2px 8px;
+    border-radius: 4px; font-size: 12px; font-weight: 500;
+  }
+  .date-badge.overdue  { background: #fde8e8; color: var(--red); }
+  .date-badge.today    { background: #fff3cd; color: #856404; }
+  .date-badge.upcoming { background: #e6f4ed; color: var(--green); }
+  .date-badge.normal   { background: #e8eef8; color: var(--deep); }
+  .status-pill {
+    display: inline-block; padding: 3px 10px;
+    border-radius: 12px; font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .status-Active   { background: #e6f4ed; color: var(--green); }
+  .status-Disposed { background: #f0f0f0; color: #888; }
+  .status-Stayed   { background: #fff3cd; color: #856404; }
+  .status-Pending  { background: #fde8e8; color: var(--red); }
+  .fee-cell { font-family: 'EB Garamond', serif; font-size: 15px; font-weight: 600; }
+  .comment-cell { color: var(--ink-light); font-size: 12.5px; max-width: 200px; }
+  .actions-cell { white-space: nowrap; }
+  .btn-sm {
+    padding: 4px 10px; border: none; border-radius: 5px;
+    font-size: 12px; font-weight: 500; cursor: pointer;
+    font-family: 'Inter', sans-serif; transition: all 0.15s;
+  }
+  .btn-edit  { background: #e8eef8; color: var(--deep); }
+  .btn-edit:hover  { background: #c8d8f0; }
+  .btn-del   { background: #fde8e8; color: var(--red); margin-left: 5px; }
+  .btn-del:hover   { background: #fbd0d0; }
+  .empty-state {
+    text-align: center; padding: 60px 20px;
+    color: var(--ink-light);
+  }
+  .empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-state p { font-size: 15px; }
+
+  /* TOAST */
+  #toast {
+    position: fixed; bottom: 28px; right: 28px;
+    background: var(--deep); color: white;
+    padding: 13px 22px; border-radius: 8px;
+    font-size: 14px; font-weight: 500;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.22);
+    transform: translateY(80px); opacity: 0;
+    transition: all 0.3s cubic-bezier(.4,0,.2,1);
+    z-index: 999;
+  }
+  #toast.show { transform: translateY(0); opacity: 1; }
+  #toast.success { background: var(--green); }
+  #toast.error   { background: var(--red); }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45); z-index: 200;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: white; border-radius: 12px;
+    padding: 28px; max-width: 420px; width: 90%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  .modal h3 { font-family: 'EB Garamond', serif; font-size: 20px; margin-bottom: 10px; }
+  .modal p  { color: var(--ink-light); font-size: 14px; margin-bottom: 22px; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+  /* HEARING SOON INDICATOR */
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    display: inline-block; margin-right: 5px;
+  }
+  .dot.red   { background: var(--red); }
+  .dot.green { background: var(--green); }
+  .dot.gold  { background: var(--gold); }
+
+  @media (max-width: 1100px) {
+    .panels { grid-template-columns: 1fr; }
+    .stats-bar { grid-template-columns: repeat(2,1fr); }
+  }
+  @media (max-width: 600px) {
+    .header-inner { padding: 12px 16px; flex-wrap: wrap; gap: 10px; }
+    .container { padding: 16px 12px; }
+    .stats-bar { grid-template-columns: repeat(2,1fr); }
+    .field-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-seal">⚖</div>
+      <div class="logo-text">
+        <h1>Legal Case Diary</h1>
+        <p>Hearing Tracker &amp; Fee Register</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn-header btn-import" onclick="loadAll()">⟳ Refresh</button>
+      <button class="btn-header btn-export" onclick="exportToExcel()">⬇ Export Backup (.xlsx)</button>
+    </div>
+  </div>
+</header>
+
+<div class="container" style="padding-bottom:0;padding-top:18px;">
+  <div style="background:white;border:1px solid var(--border);border-left:4px solid var(--gold);border-radius:10px;padding:14px 20px;margin-bottom:18px;box-shadow:var(--shadow);">
+    <label style="margin-bottom:6px;">Google Sheet Web App URL (paste once — saved in this browser)</label>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+      <input type="text" id="apiUrl" placeholder="https://script.google.com/macros/s/XXXXXXXX/exec" style="flex:1;min-width:240px;font-family:'Inter',monospace;font-size:12.5px;">
+      <button class="btn-header btn-export" style="padding:9px 18px;" onclick="connectApi()">Connect</button>
+      <span id="connStatus" style="font-size:12px;color:var(--ink-light);"></span>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <!-- STATS -->
+  <div class="stats-bar">
+    <div class="stat-card">
+      <div class="stat-icon blue">📁</div>
+      <div>
+        <div class="stat-value" id="statTotal">0</div>
+        <div class="stat-label">Total Cases</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon gold">📅</div>
+      <div>
+        <div class="stat-value" id="statUpcoming">0</div>
+        <div class="stat-label">Hearings This Week</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon red">⚠️</div>
+      <div>
+        <div class="stat-value" id="statOverdue">0</div>
+        <div class="stat-label">Overdue Hearings</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon green">₹</div>
+      <div>
+        <div class="stat-value" id="statFees">0</div>
+        <div class="stat-label">Total Fees (₹)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANELS -->
+  <div class="panels">
+    <!-- FORM -->
+    <div class="form-panel">
+      <div class="panel-header">
+        <span class="panel-title" id="formTitle">➕ Add New Case</span>
+        <button class="btn-sm btn-edit" id="cancelEdit" onclick="cancelEdit()" style="display:none;">✕ Cancel</button>
+      </div>
+      <div class="form-body">
+        <input type="hidden" id="editId">
+        <div class="field">
+          <label>Client Name <span class="req">*</span></label>
+          <input type="text" id="clientName" placeholder="e.g. Ramesh Kumar" autocomplete="off">
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Case Number</label>
+            <input type="text" id="caseNumber" placeholder="e.g. WP/2024/1234">
+          </div>
+          <div class="field">
+            <label>Status</label>
+            <select id="status">
+              <option>Active</option>
+              <option>Pending</option>
+              <option>Stayed</option>
+              <option>Disposed</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Court / Tribunal</label>
+          <input type="text" id="court" placeholder="e.g. High Court of Madras">
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Next Hearing Date <span class="req">*</span></label>
+            <input type="date" id="hearingDate">
+          </div>
+          <div class="field">
+            <label>Fees (₹)</label>
+            <input type="number" id="fees" placeholder="0" min="0">
+          </div>
+        </div>
+        <div class="field">
+          <label>Comments / Notes</label>
+          <textarea id="comments" placeholder="Hearing purpose, interim orders, next steps..."></textarea>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-secondary" onclick="clearForm()">Clear</button>
+          <button class="btn btn-primary" onclick="saveCase()">Save Case</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TABLE -->
+    <div class="table-panel">
+      <div class="table-toolbar">
+        <div class="search-wrap">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input type="text" id="searchInput" placeholder="Search by client name, case number, court…" oninput="renderTable()">
+        </div>
+        <select class="filter-select" id="filterStatus" onchange="renderTable()">
+          <option value="">All Status</option>
+          <option>Active</option>
+          <option>Pending</option>
+          <option>Stayed</option>
+          <option>Disposed</option>
+        </select>
+        <select class="filter-select" id="filterDate" onchange="renderTable()">
+          <option value="">All Dates</option>
+          <option value="today">Today</option>
+          <option value="week">This Week</option>
+          <option value="month">This Month</option>
+          <option value="overdue">Overdue</option>
+        </select>
+        <div class="record-count" id="recordCount">0 records</div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th onclick="sortBy('clientName')" id="th-clientName">Client Name</th>
+              <th onclick="sortBy('caseNumber')" id="th-caseNumber">Case No.</th>
+              <th onclick="sortBy('court')" id="th-court">Court</th>
+              <th onclick="sortBy('hearingDate')" id="th-hearingDate">Hearing Date</th>
+              <th onclick="sortBy('fees')" id="th-fees">Fees (₹)</th>
+              <th onclick="sortBy('status')" id="th-status">Status</th>
+              <th>Comments</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+        <div class="empty-state" id="emptyState">
+          <div class="empty-icon">⚖️</div>
+          <p>No cases yet. Add your first case using the form.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE MODAL -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal">
+    <h3>Delete Case?</h3>
+    <p>This will permanently remove the case record. This action cannot be undone.</p>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" style="width:auto;padding:8px 20px" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-danger" style="width:auto;padding:8px 20px" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ── DATA STORE (Google Sheet via Apps Script) ──────────────────
+let cases = [];
+let deleteTargetId = null;
+let sortCol = 'hearingDate';
+let sortDir = 1;
+
+function getApiUrl() {
+  return document.getElementById('apiUrl').value.trim();
+}
+
+function connectApi() {
+  const url = getApiUrl();
+  if (!url) { toast('Please paste the Web App URL first.', 'error'); return; }
+  localStorage.setItem('legalDiaryApiUrl', url);
+  loadAll();
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem('legalDiaryApiUrl');
+  if (saved) {
+    document.getElementById('apiUrl').value = saved;
+    loadAll();
+  }
+});
+
+async function loadAll() {
+  const url = getApiUrl();
+  if (!url) { toast('Paste the Web App URL and click Connect.', 'error'); return; }
+  setConnStatus('Loading…');
+  try {
+    const res = await fetch(url + '?action=list');
+    const data = await res.json();
+    cases = Array.isArray(data) ? data : [];
+    renderTable();
+    updateStats();
+    setConnStatus(cases.length + ' record' + (cases.length !== 1 ? 's' : '') + ' loaded from Sheet ✓');
+  } catch (err) {
+    setConnStatus('');
+    toast('Could not reach the Sheet. Check the URL.', 'error');
+  }
+}
+
+function setConnStatus(msg) {
+  document.getElementById('connStatus').textContent = msg;
+}
+
+// ── SAVE / EDIT ─────────────────────────────────────────────
+async function saveCase() {
+  const url = getApiUrl();
+  if (!url) { toast('Paste the Web App URL and click Connect first.', 'error'); return; }
+
+  const clientName  = document.getElementById('clientName').value.trim();
+  const hearingDate = document.getElementById('hearingDate').value;
+  if (!clientName || !hearingDate) {
+    toast('Please fill in Client Name and Hearing Date.', 'error');
+    return;
+  }
+
+  const id = document.getElementById('editId').value;
+  const entry = {
+    action: id ? 'update' : 'add',
+    id: id || undefined,
+    clientName,
+    caseNumber : document.getElementById('caseNumber').value.trim(),
+    court      : document.getElementById('court').value.trim(),
+    hearingDate,
+    fees       : parseFloat(document.getElementById('fees').value) || 0,
+    status     : document.getElementById('status').value,
+    comments   : document.getElementById('comments').value.trim(),
+  };
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(entry)
+    });
+    const data = await res.json();
+    if (data.success) {
+      toast(id ? 'Case updated successfully!' : 'Case added successfully!', 'success');
+      clearForm();
+      await loadAll();
+    } else {
+      toast('Error: ' + (data.error || 'Unknown error'), 'error');
+    }
+  } catch (err) {
+    toast('Network error: ' + err.message, 'error');
+  }
+}
+
+function editCase(id) {
+  const c = cases.find(x => x.id === id);
+  if (!c) return;
+  document.getElementById('editId').value     = c.id;
+  document.getElementById('clientName').value = c.clientName;
+  document.getElementById('caseNumber').value = c.caseNumber;
+  document.getElementById('court').value      = c.court;
+  document.getElementById('hearingDate').value= c.hearingDate;
+  document.getElementById('fees').value       = c.fees || '';
+  document.getElementById('status').value     = c.status;
+  document.getElementById('comments').value   = c.comments;
+  document.getElementById('formTitle').textContent = '✏️ Edit Case';
+  document.getElementById('cancelEdit').style.display = 'inline-block';
+  document.querySelector('.form-panel').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function cancelEdit() {
+  clearForm();
+  document.getElementById('formTitle').textContent = '➕ Add New Case';
+  document.getElementById('cancelEdit').style.display = 'none';
+}
+
+function clearForm() {
+  ['editId','clientName','caseNumber','court','hearingDate','fees','comments'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('status').value = 'Active';
+  document.getElementById('formTitle').textContent = '➕ Add New Case';
+  document.getElementById('cancelEdit').style.display = 'none';
+  renderTable();
+}
+
+// ── DELETE ──────────────────────────────────────────────────
+function deleteCase(id) {
+  deleteTargetId = id;
+  document.getElementById('deleteModal').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('deleteModal').classList.remove('open');
+  deleteTargetId = null;
+}
+async function confirmDelete() {
+  const url = getApiUrl();
+  if (!url) { toast('Connect to the Sheet first.', 'error'); return; }
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'delete', id: deleteTargetId })
+    });
+    const data = await res.json();
+    closeModal();
+    if (data.success) {
+      toast('Case deleted.', 'error');
+      await loadAll();
+    } else {
+      toast('Error: ' + (data.error || 'Unknown error'), 'error');
+    }
+  } catch (err) {
+    closeModal();
+    toast('Network error: ' + err.message, 'error');
+  }
+}
+
+// ── SORT ────────────────────────────────────────────────────
+function sortBy(col) {
+  document.querySelectorAll('thead th').forEach(t => t.className = '');
+  if (sortCol === col) sortDir *= -1;
+  else { sortCol = col; sortDir = 1; }
+  const th = document.getElementById('th-' + col);
+  if (th) th.className = sortDir === 1 ? 'sort-asc' : 'sort-desc';
+  renderTable();
+}
+
+// ── FILTER & RENDER ─────────────────────────────────────────
+function filtered() {
+  const q      = document.getElementById('searchInput').value.toLowerCase();
+  const fSt    = document.getElementById('filterStatus').value;
+  const fDt    = document.getElementById('filterDate').value;
+  const today  = new Date(); today.setHours(0,0,0,0);
+  const week   = new Date(today); week.setDate(today.getDate() + 7);
+  const month  = new Date(today); month.setMonth(today.getMonth() + 1);
+
+  return cases
+    .filter(c => {
+      const text = (c.clientName + c.caseNumber + c.court + c.comments).toLowerCase();
+      if (q && !text.includes(q)) return false;
+      if (fSt && c.status !== fSt) return false;
+      if (fDt) {
+        const hd = new Date(c.hearingDate); hd.setHours(0,0,0,0);
+        if (fDt === 'today'  && hd.getTime() !== today.getTime()) return false;
+        if (fDt === 'week'   && (hd < today || hd > week))        return false;
+        if (fDt === 'month'  && (hd < today || hd > month))       return false;
+        if (fDt === 'overdue'&& hd >= today)                      return false;
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      let va = a[sortCol] ?? '', vb = b[sortCol] ?? '';
+      if (sortCol === 'fees') { va = Number(va); vb = Number(vb); }
+      return va < vb ? -sortDir : va > vb ? sortDir : 0;
+    });
+}
+
+function dateBadge(dateStr) {
+  if (!dateStr) return '';
+  const hd = new Date(dateStr); hd.setHours(0,0,0,0);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const diff = Math.round((hd - today) / 86400000);
+  let cls = 'normal', label = formatDate(dateStr);
+  if (diff < 0)  { cls = 'overdue';  label = `${Math.abs(diff)}d overdue`; }
+  else if (diff === 0) { cls = 'today'; label = 'Today'; }
+  else if (diff <= 7)  { cls = 'upcoming'; }
+  return `<span class="date-badge ${cls}">${label}</span>`;
+}
+
+function formatDate(d) {
+  if (!d) return '–';
+  const dt = new Date(d + 'T00:00:00');
+  return dt.toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'});
+}
+
+function fmtFee(f) {
+  if (!f) return '–';
+  return '₹' + Number(f).toLocaleString('en-IN');
+}
+
+function renderTable() {
+  const rows = filtered();
+  const tbody = document.getElementById('tableBody');
+  const empty = document.getElementById('emptyState');
+  document.getElementById('recordCount').textContent = rows.length + ' record' + (rows.length !== 1 ? 's' : '');
+
+  if (!rows.length) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  const editingId = document.getElementById('editId').value;
+
+  tbody.innerHTML = rows.map(c => `
+    <tr class="${c.id === editingId ? 'editing-row' : ''}">
+      <td class="client-name">${esc(c.clientName)}</td>
+      <td style="color:var(--ink-light);font-size:12.5px">${esc(c.caseNumber)||'–'}</td>
+      <td style="font-size:12.5px">${esc(c.court)||'–'}</td>
+      <td class="hearing-date">${dateBadge(c.hearingDate)}<br><span style="font-size:11px;color:var(--ink-light)">${formatDate(c.hearingDate)}</span></td>
+      <td class="fee-cell">${fmtFee(c.fees)}</td>
+      <td><span class="status-pill status-${c.status||'Active'}">${c.status||'Active'}</span></td>
+      <td class="comment-cell" title="${esc(c.comments)}">${esc(c.comments).substring(0,60)+(c.comments&&c.comments.length>60?'…':'')}</td>
+      <td class="actions-cell">
+        <button class="btn-sm btn-edit" onclick="editCase('${c.id}')">✏ Edit</button>
+        <button class="btn-sm btn-del" onclick="deleteCase('${c.id}')">🗑 Del</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── STATS ───────────────────────────────────────────────────
+function updateStats() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const week  = new Date(today); week.setDate(today.getDate() + 7);
+  let upcoming = 0, overdue = 0, fees = 0;
+  cases.forEach(c => {
+    if (c.hearingDate) {
+      const hd = new Date(c.hearingDate); hd.setHours(0,0,0,0);
+      if (hd >= today && hd <= week) upcoming++;
+      if (hd < today) overdue++;
+    }
+    fees += Number(c.fees) || 0;
+  });
+  document.getElementById('statTotal').textContent    = cases.length;
+  document.getElementById('statUpcoming').textContent = upcoming;
+  document.getElementById('statOverdue').textContent  = overdue;
+  document.getElementById('statFees').textContent     = '₹' + fees.toLocaleString('en-IN');
+}
+
+// ── EXCEL EXPORT ────────────────────────────────────────────
+function exportToExcel() {
+  if (!cases.length) { toast('No cases to export.', 'error'); return; }
+  const wsData = [
+    ['ID','Client Name','Case Number','Court','Next Hearing Date','Fees (₹)','Status','Comments','Created On','Last Updated'],
+    ...cases.map(c => [
+      c.id, c.clientName, c.caseNumber, c.court,
+      c.hearingDate, c.fees||0, c.status, c.comments,
+      c.createdOn ? new Date(c.createdOn).toLocaleDateString('en-IN') : '',
+      c.updatedOn ? new Date(c.updatedOn).toLocaleDateString('en-IN') : '',
+    ])
+  ];
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols'] = [8,25,20,25,18,14,14,40,18,18].map(w => ({wch:w}));
+  XLSX.utils.book_append_sheet(wb, ws, 'Cases');
+  XLSX.writeFile(wb, `Legal_Diary_${new Date().toISOString().slice(0,10)}.xlsx`);
+  toast('Excel file exported!', 'success');
+}
+
+// ── EXCEL EXPORT (local backup snapshot) ───────────────────
+
+// ── TOAST ────────────────────────────────────────────────────
+function toast(msg, type = 'success') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show ' + type;
+  setTimeout(() => { el.className = ''; }, 3000);
+}
+
+// ── INIT ─────────────────────────────────────────────────────
+sortCol = 'hearingDate';
+sortDir = 1;
+renderTable();
+updateStats();
+</script>
+</body>
+</html>
